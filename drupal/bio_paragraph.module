@@ -1,0 +1,76 @@
+<?php
+
+use Drupal\node\Entity\Node;
+use Drupal\paragraphs\Entity\Paragraph;
+use Drupal\Core\Url;
+use Drupal\Core\Link;
+
+/**
+ * Implements hook_theme().
+ */
+
+function bio_paragraph_theme() {
+  return [
+    'hello_block' => [
+      'variables' => [
+        'who' => '',
+        'data' => [],
+        'comments' => [],
+      ],
+    ],
+  ];
+}
+
+
+/**
+ * Implements hook_node_insert().
+ * 
+ * Insert a New Paragraph with static info
+ * @param Node $node
+ * 
+ */
+function bio_paragraph_node_insert(Node $node) {
+  if ($node->bundle() == 'article') {
+    bio_paragraph_add_paragraph($node);
+  }
+}
+
+
+/**
+ * Create a New Paragraph and attach it to it's node
+ * @param Node $node
+ * 
+ */
+function bio_paragraph_add_paragraph(Node $node) {
+
+  $url = 'https://www.google.com/';
+  $google_link = Link::fromTextAndUrl(t('Open Google'), Url::fromUri($url));
+
+  $paragraph = Paragraph::create([
+    'type' => 'block',
+    'field_block_title' => t('My Bio'),
+    'field_block_body' => t('Fill you Bio below...'),
+    'field_block_action' => [
+      'uri' => $url,
+      'title' => t('Open Google'),
+      'options' => [
+        'attributes' => [
+          'class' => array('button', 'button-action', 'button--primary', 'button--small'),
+          'target' => '_blank',
+        ],
+      ],
+    ],
+  ]);
+
+  $paragraph->isNew();
+  $paragraph->save();	
+    
+  // Grab any existing paragraphs from the node, and add this one 
+  $current = $node->get('field_block')->getValue();
+  $current[] = array(
+      'target_id' => $paragraph->id(),
+      'target_revision_id' => $paragraph->getRevisionId(),
+    );
+  $node->set('field_block', $current);
+  $node->save();
+}
